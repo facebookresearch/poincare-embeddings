@@ -7,6 +7,9 @@ fi
 
 echo "Using $NTHREADS threads"
 
+# make sure OpenMP doesn't interfere with pytorch.multiprocessing
+export OMP_NUM_THREADS=1
+
 python3 embed.py \
        -dim 5 \
        -lr 0.3 \
