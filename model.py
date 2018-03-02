@@ -147,8 +147,6 @@ class GraphDataset(Dataset):
             self._counts[h] += w
             self._weights[t][h] += w
         self._weights = dict(self._weights)
-        nents = int(np.array(list(self._weights.keys())).max() + 1)
-        assert len(objects) == nents, 'Number of objects do no match'
 
         if unigram_size > 0:
             c = self._counts ** self._dampening
