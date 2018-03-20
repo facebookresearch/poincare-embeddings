@@ -13,9 +13,9 @@ export OMP_NUM_THREADS=1
 python3 embed.py \
        -dim 5 \
        -lr 0.3 \
-       -epochs 200 \
+       -epochs 300 \
        -negs 50 \
-       -burnin 10 \
+       -burnin 20 \
        -nproc "${NTHREADS}" \
        -distfn poincare \
        -dset wordnet/mammal_closure.tsv \

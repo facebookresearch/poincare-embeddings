@@ -9,7 +9,7 @@
 import torch as th
 from torch.optim.optimizer import Optimizer, required
 
-spten_t = th.sparse.DoubleTensor
+spten_t = th.sparse.FloatTensor
 
 
 def poincare_grad(p, d_p):

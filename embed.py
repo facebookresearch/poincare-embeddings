@@ -113,7 +113,7 @@ if __name__ == '__main__':
     parser.add_argument('-debug', help='Print debug output', action='store_true', default=False)
     opt = parser.parse_args()
 
-    th.set_default_tensor_type('torch.DoubleTensor')
+    th.set_default_tensor_type('torch.FloatTensor')
     if opt.debug:
         log_level = logging.DEBUG
     else:

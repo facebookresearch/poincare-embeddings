@@ -23,7 +23,6 @@ class Arcosh(Function):
         self.eps = eps
 
     def forward(self, x):
-        self.save_for_backward(x)
         self.z = th.sqrt(x * x - 1)
         return th.log(x + self.z)
 
@@ -130,7 +129,7 @@ class SNEmbedding(Embedding):
 
 class GraphDataset(Dataset):
     _ntries = 10
-    _dampening = 0.75
+    _dampening = 1
 
     def __init__(self, idx, objects, nnegs, unigram_size=1e8):
         print('Indexing data')
@@ -174,7 +173,10 @@ class SNGraphDataset(GraphDataset):
         t, h, _ = self.idx[i]
         negs = set()
         ntries = 0
-        while ntries < self.max_tries and len(negs) < self.nnegs:
+        nnegs = self.nnegs
+        if self.burnin:
+            nnegs *= 0.1
+        while ntries < self.max_tries and len(negs) < nnegs:
             if self.burnin:
                 n = randint(0, len(self.unigram_table))
                 n = int(self.unigram_table[n])
@@ -186,7 +188,7 @@ class SNGraphDataset(GraphDataset):
         if len(negs) == 0:
             negs.add(t)
         ix = [t, h] + list(negs)
-        while len(ix) < self.nnegs + 2:
+        while len(ix) < nnegs + 2:
             ix.append(ix[randint(2, len(ix))])
         return th.LongTensor(ix).view(1, len(ix)), th.zeros(1).long()
 
