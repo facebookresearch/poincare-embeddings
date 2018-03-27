@@ -14,7 +14,7 @@ This will generate the transitive closure of the full noun hierarchy as well as 
 
 To embed the mammals subtree in the reconstruction setting (i.e., without missing data), go to the /root directory/ of the project and run
 #+BEGIN_SRC sh
-  NTHREADS=2 ./train-mammals.sh
+  NTHREADS=2 ./example.sh
 #+END_SRC
 This shell script includes the appropriate parameter settings for the mammals subtree and saves the trained model as =mammals.pth=. 
 
