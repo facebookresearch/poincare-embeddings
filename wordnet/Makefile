@@ -1,4 +1,4 @@
-PYTHON=python3
+PYTHON=python3.6
 
 mammal_closure.tsv: noun_closure.tsv
 	cat noun_closure.tsv | grep -e "\smammal.n.01" | cut -f1 | sed 's/\(.*\)/\^\1/g' > mammals.txt
