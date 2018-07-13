@@ -14,7 +14,7 @@ export OMP_NUM_THREADS=1
 # reported in [Nickel, Kiela, 2017]
 # For MAP results, replace the learning rate parameter with -lr 2.0
 
-python3 embed.py \
+python3.6 embed.py \
        -dim 10 \
        -lr 1.0 \
        -epochs 1500 \
