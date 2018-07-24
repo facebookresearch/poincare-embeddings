@@ -143,6 +143,9 @@ class GraphDataset(Dataset):
         self._counts = np.ones(len(objects), dtype=np.float)
         for i in range(idx.size(0)):
             t, h, w = self.idx[i]
+            t = int(t)
+            h = int(h)
+            w = int(w)
             self._counts[h] += w
             self._weights[t][h] += w
         self._weights = dict(self._weights)
@@ -171,6 +174,8 @@ class SNGraphDataset(GraphDataset):
 
     def __getitem__(self, i):
         t, h, _ = self.idx[i]
+        t = int(t)
+        h = int(h)
         negs = set()
         ntries = 0
         nnegs = self.nnegs

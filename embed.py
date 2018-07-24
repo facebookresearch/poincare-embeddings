@@ -9,6 +9,7 @@ import torch as th
 import numpy as np
 import logging
 import argparse
+import torch
 from torch.autograd import Variable
 from collections import defaultdict as ddict
 import torch.multiprocessing as mp
@@ -22,12 +23,14 @@ import sys
 
 def ranking(types, model, distfn):
     lt = th.from_numpy(model.embedding())
-    embedding = Variable(lt, volatile=True)
-    ranks = []
-    ap_scores = []
-    for s, s_types in types.items():
-        s_e = Variable(lt[s].expand_as(embedding), volatile=True)
-        _dists = model.dist()(s_e, embedding).data.cpu().numpy().flatten()
+    embedding = Variable(lt, requires_grad = True)
+    with torch.no_grad():
+        ranks = []
+        ap_scores = []
+        for s, s_types in types.items():
+            s_e = Variable(lt[s].expand_as(embedding), requires_grad = True)
+        with torch.no_grad():
+            _dists = model.dist()(s_e, embedding).data.cpu().numpy().flatten()
         _dists[s] = 1e+12
         _labels = np.zeros(embedding.size(0))
         _dists_masked = _dists.copy()
