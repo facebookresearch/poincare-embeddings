@@ -1,0 +1,12 @@
+nltk
+scikit-learn
+pytorch=1.0.0
+pandas
+h5py
+cython
+tqdm
+numpy
+matplotlib
+jupyter
+scipy
+torch
