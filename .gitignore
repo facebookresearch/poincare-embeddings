@@ -1,0 +1,8 @@
+*.pth
+*.pth.*
+*.so
+build
+__pycache__
+wordnet/*.csv
+hype/adjacency_matrix_dataset.cpp
+hype/graph_dataset.cpp
