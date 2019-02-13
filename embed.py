@@ -42,7 +42,7 @@ def async_eval(adj, q, logQ, opt):
         if temp is None:
             return
 
-        if q.qsize() > 1:
+        if not q.empty():
             continue
 
         epoch, elapsed, loss, pth = temp
@@ -212,7 +212,7 @@ def main():
 
         controlQ.put((epoch, elapsed, loss, checkpoint.path))
 
-        while logQ.qsize() > 0:
+        while not logQ.empty():
             lmsg, pth = logQ.get()
             shutil.move(pth, opt.checkpoint)
             log.info(f'json_stats: {json.dumps(lmsg)}')
@@ -236,7 +236,7 @@ def main():
             progress=not opt.quiet)
     controlQ.put(None)
     control_thread.join()
-    while logQ.qsize() > 0:
+    while not logQ.empty():
         lmsg, pth = logQ.get()
         shutil.move(pth, opt.checkpoint)
         log.info(f'json_stats: {json.dumps(lmsg)}')
