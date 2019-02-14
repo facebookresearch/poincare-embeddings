@@ -5,4 +5,4 @@ h5py
 cython
 tqdm
 numpy
-torch=1.0.0
+torch==1.0.0
