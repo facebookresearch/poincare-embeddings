@@ -8,3 +8,4 @@ hype/adjacency_matrix_dataset.cpp
 hype/graph_dataset.cpp
 .idea
 venv
+.DS_Store
