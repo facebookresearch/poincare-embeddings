@@ -11,6 +11,15 @@ from .euclidean import EuclideanManifold
 
 
 class PoincareManifold(EuclideanManifold):
+    """
+    Poincaré Ball model of hyperbolic geometry.  This is the manifold used
+    in `"Poincaré Embeddings for Learning Hierarchical Representations" 
+    (Nickel et al., 2017) <https://arxiv.org/abs/1705.08039>`_
+
+    Args:
+        eps (float): :math:`\\epsilon` value to restrict the radius of the 
+            ball.  This is used to prevent numerical overflow/underflow
+    """
     def __init__(self, eps=1e-5, **kwargs):
         super(PoincareManifold, self).__init__(**kwargs)
         self.eps = eps
@@ -18,9 +27,16 @@ class PoincareManifold(EuclideanManifold):
         self.max_norm = self.boundary
 
     def distance(self, u, v):
+        """
+        See :func:`~hype.manifold.Manifold.distance`
+    
+        :math:`d(u, v) = \\text{arcosh}\\left( 
+        1 + 2 \\frac{||u - v||^2}{(1 - ||u||^2)(1 - ||v||^2)} \\right)`
+        """
         return Distance.apply(u, v, self.eps)
 
     def rgrad(self, p, d_p):
+        """See :func:`~hype.manifold.Manifold.rgrad`"""
         if d_p.is_sparse:
             p_sqnorm = th.sum(
                 p[d_p._indices()[0].squeeze()] ** 2, dim=1,

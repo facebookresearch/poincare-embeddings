@@ -12,10 +12,17 @@ from .manifold import Manifold
 
 
 class LorentzManifold(Manifold):
+    """
+    Lorentz model of hyperbolic geometry.  This is the manifold used
+    in `"Learning Continuous Hierarchies in the Lorentz Model of 
+    Hyperbolic Geometry" (Nickel et al., 2018) <https://arxiv.org/abs/1806.03417>`_
+
+    """
     __slots__ = ["eps", "_eps", "norm_clip", "max_norm", "debug"]
 
     @staticmethod
     def dim(dim):
+        """See :func:`~hype.manifold.Manifold.dim`"""
         return dim + 1
 
     def __init__(self, eps=1e-12, _eps=1e-5, norm_clip=1, max_norm=1e6,
@@ -28,7 +35,18 @@ class LorentzManifold(Manifold):
 
     @staticmethod
     def ldot(u, v, keepdim=False):
-        """Lorentzian Scalar Product"""
+        """
+        Computes the Lorentzian Scalar Product between ``u`` and ``v``
+        
+        :math:`\\langle u, v \\rangle_L = -u_0 * v_0 + \\sum_{i=1}^n u_i * v_i`
+
+        Args:
+            u (Tensor): embedding
+            v (Tensor): embedding
+
+        Returns:
+            Tensor
+        """
         uv = u * v
         uv.narrow(-1, 0, 1).mul_(-1)
         return th.sum(uv, dim=-1, keepdim=keepdim)
@@ -39,6 +57,12 @@ class LorentzManifold(Manifold):
         return x.narrow(-1, 1, d) / (x.narrow(-1, 0, 1) + 1)
 
     def distance(self, u, v):
+        """
+        See :func:`~hype.manifold.Manifold.distance`
+    
+
+        :math:`d(u, v) = \\text{acosh}(-\\langle u, v, \\rangle_L)`
+        """
         d = -LorentzDot.apply(u, v)
         d.data.clamp_(min=1)
         return acosh(d, self._eps)
@@ -47,7 +71,7 @@ class LorentzManifold(Manifold):
         return th.sqrt(th.sum(th.pow(self.to_poincare_ball(u), 2), dim=-1))
 
     def normalize(self, w):
-        """Normalize vector such that it is located on the hyperboloid"""
+        """See :func:`~hype.manifold.Manifold.normalize`"""
         d = w.size(-1) - 1
         narrowed = w.narrow(-1, 1, d)
         if self.max_norm:
@@ -67,11 +91,15 @@ class LorentzManifold(Manifold):
         return v_all
 
     def init_weights(self, w, irange=1e-5):
+        """
+        Same as :func:`~hype.manifold.Manifold.init_weights`, but also fixes the 
+        normalized embeddings to the hyperboloid
+        """
         w.data.uniform_(-irange, irange)
         w.data.copy_(self.normalize(w.data))
 
     def rgrad(self, p, d_p):
-        """Riemannian gradient for hyperboloid"""
+        """See :func:`~hype.manifold.Manifold.rgrad`"""
         if d_p.is_sparse:
             u = d_p._values()
             x = p.index_select(0, d_p._indices().squeeze())
@@ -83,7 +111,13 @@ class LorentzManifold(Manifold):
         return d_p
 
     def expm(self, p, d_p, lr=None, out=None, normalize=False):
-        """Exponential map for hyperboloid"""
+        """
+        See :func:`~hype.manifold.Manifold.expm`
+        
+
+        :math:`exp_p(d_p) = \\text{cosh}(||d_p||_L)p + \\text{sinh}(||d_p||)
+        \\frac{d_p}{||d_p||_L}`
+        """
         if out is None:
             out = p
         if d_p.is_sparse:
@@ -123,7 +157,7 @@ class LorentzManifold(Manifold):
             p.copy_(newp)
 
     def logm(self, x, y):
-        """Logarithmic map on the Lorenz Manifold"""
+        """See :func:`~hype.manifold.Manifold.logm`"""
         xy = th.clamp(self.ldot(x, y).unsqueeze(-1), max=-1)
         v = acosh(-xy, self.eps).div_(
             th.clamp(th.sqrt(xy * xy - 1), min=self._eps)
@@ -131,7 +165,7 @@ class LorentzManifold(Manifold):
         return self.normalize_tan(x, v)
 
     def ptransp(self, x, y, v, ix=None, out=None):
-        """Parallel transport for hyperboloid"""
+        """See :func:`~hype.manifold.Manifold.ptransp`"""
         if ix is not None:
             v_ = v
             x_ = x.index_select(0, ix)

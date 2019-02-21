@@ -29,6 +29,24 @@ cdef unsigned long rand_r(unsigned long* seed) nogil:
     return seed[0] % RAND_MAX
 
 cdef class BatchedDataset:
+    '''
+    Create a dataset for training Hyperbolic embeddings.  Rather than
+    allocating many tensors for individual dataset items, we instead
+    produce a single batch in each iteration.  This allows us to do a single
+    Tensor allocation for the entire batch and filling it out in place.
+
+    Args:
+        idx (ndarray[ndims=2]):  Indexes of objects corresponding to co-occurrence.
+            I.E. if ``idx[0, :] == [4, 19]``, then item 4 co-occurs with item 19
+        weights (ndarray[ndims=1]): Weights for each co-occurence.  Corresponds
+            to the number of times a pair co-occurred.  (Equal length to ``idx``)
+        nnegs (int): Number of negative samples to produce with each positive
+        objects (list[str]): Mapping from integer ID to hashtag string
+        nnegs (int): Number of negatives to produce with each positive
+        batch_size (int): Size of each minibatch
+        num_workers (int): Number of threads to use to produce each batch
+        burnin (bool): perform frequency based negative sampling
+    '''
     cdef public list objects
     cdef public bool burnin
     cdef public double neg_multiplier
@@ -45,24 +63,6 @@ cdef class BatchedDataset:
 
     def __cinit__(self, idx, objects, weights, nnegs, batch_size, num_workers,
                   burnin=False, sample_dampening=0.75):
-        '''
-        Create a dataset for training Hyperbolic embeddings.  Rather than
-        allocating many tensors for individual dataset items, we instead
-        produce a single batch in each iteration.  This allows us to do a single
-        Tensor allocation for the entire batch and filling it out in place.
-
-        Args:
-            idx (ndarray[ndims=2]):  Indexes of objects corresponding to co-occurrence.
-                I.E. if `idx[0, :] == [4, 19]`, then item 4 co-occurs with item 19
-            weights (ndarray[ndims=1]): Weights for each co-occurence.  Corresponds
-                to the number of times a pair co-occurred.  (Equal length to `idx`)
-            nnegs (int): Number of negative samples to produce with each positive
-            objects (list[str]): Mapping from integer ID to hashtag string
-            nnegs (int): Number of negatives to produce with each positive
-            batch_size (int): Size of each minibatch
-            num_workers (int): Number of threads to use to produce each batch
-            burnin (bool): ???
-        '''
         self.idx = idx
         self.objects = objects
         self.nnegs = nnegs
@@ -146,6 +146,12 @@ cdef class BatchedDataset:
         return self.__iter__()
 
     def __len__(self):
+        '''
+        Number of minibatches in the dataset
+
+        Returns:
+            int
+        '''
         return int(np.ceil(float(self.idx.shape[0]) / self.batch_size))
 
     def __next__(self):
@@ -153,11 +159,10 @@ cdef class BatchedDataset:
 
     def next(self):
         '''
-        Python visible function for indexing the dataset.  This first
-        allocates a tensor, and then modifies it in place with `_getitem`
+        Get the next minibatch
 
-        Args:
-            idx (int): index into the dataset
+        Returns:
+            Tuple[Tensor, Tensor]: ``inputs``, ``targets``
         '''
         size = self.queue.qsize()
         if size == 0 and all([not(t.is_alive()) for t in self.threads]):
@@ -231,6 +236,12 @@ cdef class BatchedDataset:
         return j
 
     def nnegatives(self):
+        '''
+        Number of negative samples to use.
+
+        Return:
+            int
+        '''
         return self._nnegatives()
 
     cdef int _nnegatives(self) nogil:

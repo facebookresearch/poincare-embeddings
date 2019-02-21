@@ -40,5 +40,6 @@ extensions = [
 
 
 setup(
+    packages=['hype'],
     ext_modules=cythonize(extensions),
 )

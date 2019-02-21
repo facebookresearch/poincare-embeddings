@@ -32,7 +32,7 @@ class RiemannianSGD(Optimizer):
         }
         super(RiemannianSGD, self).__init__(params, defaults)
 
-    def step(self, lr=None, counts=None, **kwargs):
+    def step(self, lr=None, **kwargs):
         """Performs a single optimization step.
 
         Arguments:

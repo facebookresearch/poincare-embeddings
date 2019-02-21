@@ -1,0 +1,5 @@
+mock
+sphinx_rtd_theme
+sphinx
+numpy
+cython

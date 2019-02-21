@@ -12,6 +12,16 @@ from torch.autograd import Function
 class Acosh(Function):
     @staticmethod
     def forward(ctx, x, eps):
+        """
+        Inverse Hyperbolic Cosine
+
+        :math:`\\text{acosh}(x) = \\text{ln}(x + \\sqrt{x^2 + 1})`
+
+        Args:
+            x (Tensor): input
+            eps (Float): epsilon value to avoid NaN in backward pass
+
+        """
         z = th.sqrt(x * x - 1)
         ctx.save_for_backward(z)
         ctx.eps = eps

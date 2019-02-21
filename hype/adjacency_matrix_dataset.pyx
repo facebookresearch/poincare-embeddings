@@ -27,6 +27,18 @@ cdef unsigned long rand_r(unsigned long* seed) nogil:
     return seed[0] % RAND_MAX
 
 cdef class AdjacencyDataset:
+    '''
+    Similar to `~hype.graph_dataset.BatchedDataset`, but uses a flat array
+    HDF5 based underlying representation.
+
+    Args:
+        adj (dict): dictionary containing ``ids``, ``neighbors``, ``offsets``,
+            ``weights``, and ``objects``
+        nnegs (int): Number of negatives to produce with each positive
+        batch_size (int): Size of each minibatch
+        num_workers (int): Number of threads to use to produce each batch
+        burnin (bool): perform frequency based negative sampling
+    '''
     cdef public bool burnin
     cdef public int N, qsize, qsamples, qmisses
     cdef public npc.ndarray objects, counts
