@@ -10,6 +10,7 @@ from torch.autograd import Function
 
 
 class Acosh(Function):
+    '''Inverse Hyperbolic Cosine'''
     @staticmethod
     def forward(ctx, x, eps):
         """

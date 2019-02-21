@@ -18,7 +18,7 @@ import mock
 
 sys.path.insert(0, os.path.abspath('../'))
 
-class Function:
+class MockedClass:
     @staticmethod
     def apply(x):
         return x
@@ -32,11 +32,26 @@ MOCK_MODULES = [
     'torch.utils',
     'torch.utils.data',
     'torch.optim',
-    'torch.optim.optimizer'
+    'torch.optim.optimizer',
+    'torch.autograd',
 ]
+
+MOCKED_CLASSES = {
+    'Optimizer': MockedClass,
+    'Function': MockedClass,
+    'Module': MockedClass,
+}
+
 for module in MOCK_MODULES:
-    sys.modules[module] = mock.Mock(Function=Function)
-sys.modules['torch.autograd'] = mock.Mock(Function=Function)
+    sys.modules[module] = mock.Mock(**MOCKED_CLASSES)
+
+# def maybe_skip_member(app, what, name, obj, skip, options):
+#     if name == 'RiemannianSGD':
+#         import pdb; pdb.set_trace()
+#     return skip
+
+# def setup(app):
+#     app.connect('autodoc-skip-member', maybe_skip_member)
 
 # -- Project information -----------------------------------------------------
 

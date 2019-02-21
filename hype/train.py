@@ -28,6 +28,23 @@ def train(
         checkpointer=None,
         progress=False
 ):
+    """
+    Function to train embeddings
+
+    Args:
+        device (torch.device): which device to train on
+        model (torch.nn.Module): model to train
+        data (BatchedDataset or AdjacencyDataset): dataloader
+        optimizer (torch.optim.Optimizer): optimizer
+        opt (SimpleNamespace): command line options
+        log (logging.Logger): log
+        rank (int): thread rank if using multiple training threads
+        queue (multiprocessing.Queue): Queue to put epoch stats into if using
+            multiple threads/asynchronous control
+        checkpointer (Callable): checkpointing function
+        progress (bool): whether or not to display progress bar per epoch
+
+    """
     if isinstance(data, torch_data.Dataset):
         loader = torch_data.DataLoader(data, batch_size=opt.batchsize,
             shuffle=True, num_workers=opt.ndproc)

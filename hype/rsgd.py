@@ -9,7 +9,7 @@ from torch.optim.optimizer import Optimizer, required
 
 
 class RiemannianSGD(Optimizer):
-    r"""Riemannian stochastic gradient descent.
+    """Riemannian stochastic gradient descent.
 
     Args:
         rgrad (Function): Function to compute the Riemannian gradient

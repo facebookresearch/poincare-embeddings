@@ -68,6 +68,22 @@ def load_adjacency_matrix(path, format='hdf5', symmetrize=False):
 
 
 def load_edge_list(path, symmetrize=False):
+    """
+    Load an edgelist dataset in CSV format.  The CSV file must have at least
+    3 columns: ``id1``, ``id2``, and ``weight``.  If the dataset is directed,
+    then it is assumed that ``id2`` is the parent of ``id1``.
+
+    Args:
+        path (str): path to the CSV file
+        symmetrize (bool): If set to ``True``, then for every edge ``A -> B``,
+            we create a symmetric edge ``B -> A``
+
+    Return:
+        Tuple[np.ndarray[ndim=2], list[str], np.ndarray[ndim=1]]: 
+            A tuple containiner: ``idx`` an array of edges, ``objects`` a 
+            list of the unique objects in the graph, and ``weights`` an array
+            the same length of ``idx`` containing the weights of each edge
+    """
     df = pandas.read_csv(path, usecols=['id1', 'id2', 'weight'], engine='c')
     df.dropna(inplace=True)
     if symmetrize:
@@ -80,6 +96,15 @@ def load_edge_list(path, symmetrize=False):
 
 
 class Embedding(nn.Module):
+    """
+    Base class for Embedding models
+
+    Args:
+        size (int): number of embeddings
+        dim (int): dimension of the embeddings
+        manifold (Manifold): which manifold to use
+        sparse (bool): whether or not to use sparse gradients
+    """
     def __init__(self, size, dim, manifold, sparse=True):
         super(Embedding, self).__init__()
         self.dim = dim
@@ -234,14 +259,22 @@ def reconstruction_worker(adj, lt, distfn, objects, progress=False):
 
 def eval_reconstruction(adj, lt, distfn, workers=1, progress=False):
     '''
-    Reconstruction evaluation.  For each object, rank its neighbors by distance
+    Reconstruction evaluation.  Evaluate how well the embedding is able
+    to reconstruct the original input graph.  Specifically, for each node,
+    we compute all of its nearest neighbors in the embedding space and rank
+    them amongst its non-neighbors.
 
     Args:
         adj (dict[int, set[int]]): Adjacency list mapping objects to its neighbors
         lt (torch.Tensor[N, dim]): Embedding table with `N` embeddings and `dim`
             dimensionality
-        distfn ((torch.Tensor, torch.Tensor) -> torch.Tensor): distance function.
+        distfn (Callable[[Tensor, Tensor], Tensor]): distance function to use for
+            computing nearest neighbors in embedding space
         workers (int): number of workers to use
+        progress (bool): display progress bar
+
+    Returns:
+        Tuple[float, float]: ``mean_rank``, ``map_rank``
     '''
     objects = np.array(list(adj.keys()))
     if workers > 1:

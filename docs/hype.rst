@@ -64,7 +64,7 @@ hype.rsgd
 ----------------
 
 .. automodule:: hype.rsgd
-    :members:
+    :members: RiemannianSGD
 
 Utils
 =====
@@ -85,5 +85,4 @@ hype.common
 ------------------
 
 .. automodule:: hype.common
-    :members:
-    :exclude-members: backward
+    :members: Acosh
