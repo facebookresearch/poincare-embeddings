@@ -23,7 +23,10 @@ import os
 import sys
 import mock
 
-sys.path.insert(0, os.path.abspath('../'))
+try:
+    import hype
+except ModuleNotFoundError:
+    sys.path.insert(0, os.path.abspath('../'))
 
 
 class MockedClass:
@@ -53,14 +56,6 @@ MOCKED_CLASSES = {
 
 for module in MOCK_MODULES:
     sys.modules[module] = mock.Mock(**MOCKED_CLASSES)
-
-# def maybe_skip_member(app, what, name, obj, skip, options):
-#     if name == 'RiemannianSGD':
-#         import pdb; pdb.set_trace()
-#     return skip
-
-# def setup(app):
-#     app.connect('autodoc-skip-member', maybe_skip_member)
 
 # -- Project information -----------------------------------------------------
 
