@@ -24,7 +24,7 @@ import sys
 import mock
 
 try:
-    import hype
+    import hype  # noqa F401
 except ModuleNotFoundError:
     sys.path.insert(0, os.path.abspath('../'))
 
