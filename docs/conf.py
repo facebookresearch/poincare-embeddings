@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Configuration file for the Sphinx documentation builder.
@@ -12,22 +13,30 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+# Copyright (c) 2018-present, Facebook, Inc.
+# All rights reserved.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+
 import os
 import sys
 import mock
 
 sys.path.insert(0, os.path.abspath('../'))
 
+
 class MockedClass:
     @staticmethod
     def apply(x):
         return x
 
+
 MOCK_MODULES = [
-    'pandas', 
-    'tqdm', 
-    'sklearn.metrics', 
-    'h5py', 
+    'pandas',
+    'tqdm',
+    'sklearn.metrics',
+    'h5py',
     'torch',
     'torch.utils',
     'torch.utils.data',

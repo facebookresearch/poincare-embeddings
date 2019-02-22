@@ -6,7 +6,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from abc import abstractmethod
-import torch
 
 
 class Manifold(object):

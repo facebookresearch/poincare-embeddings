@@ -14,7 +14,7 @@ from .manifold import Manifold
 class LorentzManifold(Manifold):
     """
     Lorentz model of hyperbolic geometry.  This is the manifold used
-    in `"Learning Continuous Hierarchies in the Lorentz Model of 
+    in `"Learning Continuous Hierarchies in the Lorentz Model of
     Hyperbolic Geometry" (Nickel et al., 2018) <https://arxiv.org/abs/1806.03417>`_
 
     """
@@ -37,7 +37,7 @@ class LorentzManifold(Manifold):
     def ldot(u, v, keepdim=False):
         """
         Computes the Lorentzian Scalar Product between ``u`` and ``v``
-        
+
         :math:`\\langle u, v \\rangle_L = -u_0 * v_0 + \\sum_{i=1}^n u_i * v_i`
 
         Args:
@@ -59,7 +59,7 @@ class LorentzManifold(Manifold):
     def distance(self, u, v):
         """
         See :func:`~hype.manifold.Manifold.distance`
-    
+
 
         :math:`d(u, v) = \\text{acosh}(-\\langle u, v, \\rangle_L)`
         """
@@ -92,7 +92,7 @@ class LorentzManifold(Manifold):
 
     def init_weights(self, w, irange=1e-5):
         """
-        Same as :func:`~hype.manifold.Manifold.init_weights`, but also fixes the 
+        Same as :func:`~hype.manifold.Manifold.init_weights`, but also fixes the
         normalized embeddings to the hyperboloid
         """
         w.data.uniform_(-irange, irange)
@@ -113,7 +113,6 @@ class LorentzManifold(Manifold):
     def expm(self, p, d_p, lr=None, out=None, normalize=False):
         """
         See :func:`~hype.manifold.Manifold.expm`
-        
 
         :math:`exp_p(d_p) = \\text{cosh}(||d_p||_L)p + \\text{sinh}(||d_p||)
         \\frac{d_p}{||d_p||_L}`

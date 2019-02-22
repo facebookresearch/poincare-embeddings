@@ -79,8 +79,8 @@ def load_edge_list(path, symmetrize=False):
             we create a symmetric edge ``B -> A``
 
     Return:
-        Tuple[np.ndarray[ndim=2], list[str], np.ndarray[ndim=1]]: 
-            A tuple containiner: ``idx`` an array of edges, ``objects`` a 
+        Tuple[np.ndarray[ndim=2], list[str], np.ndarray[ndim=1]]:
+            A tuple containiner: ``idx`` an array of edges, ``objects`` a
             list of the unique objects in the graph, and ``weights`` an array
             the same length of ``idx`` containing the weights of each edge
     """
