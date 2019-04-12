@@ -208,7 +208,7 @@ def reconstruction_worker(adj, lt, distfn, objects, progress=False):
         dists = distfn(lt[None, object], lt)
         dists[object] = 1e12
         sorted_dists, sorted_idx = dists.sort()
-        ranks, = np.where(np.in1d(sorted_idx.cpu().numpy(), neighbors))
+        ranks, = np.where(np.in1d(sorted_idx.detach().cpu().numpy(), neighbors))
         # The above gives us the position of the neighbors in sorted order.  We
         # want to count the number of non-neighbors that occur before each neighbor
         ranks += 1
@@ -227,7 +227,7 @@ def reconstruction_worker(adj, lt, distfn, objects, progress=False):
         ranksum += ranks.sum() - (N * (N - 1) / 2)
         nranks += ranks.shape[0]
         labels[neighbors] = 1
-        ap_scores += average_precision_score(labels, -dists.cpu().numpy())
+        ap_scores += average_precision_score(labels, -dists.detach().cpu().numpy())
         iters += 1
     return float(ranksum), nranks, ap_scores, iters
 
