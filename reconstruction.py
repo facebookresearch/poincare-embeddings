@@ -39,7 +39,7 @@ if not os.path.exists(dset):
     raise ValueError("Can't find dset!")
 
 format = 'hdf5' if dset.endswith('.h5') else 'csv'
-dset = load_adjacency_matrix(dset, 'hdf5')
+dset = load_adjacency_matrix(dset, format)
 
 sample_size = args.sample or len(dset['ids'])
 sample = np.random.choice(len(dset['ids']), size=sample_size, replace=False)
