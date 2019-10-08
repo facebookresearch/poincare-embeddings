@@ -19,7 +19,7 @@ import h5py
 from tqdm import tqdm
 
 
-def load_adjacency_matrix(path, format='hdf5', symmetrize=False):
+def load_adjacency_matrix(path, format='hdf5', symmetrize=False, objects=None):
     if format == 'hdf5':
         with h5py.File(path, 'r') as hf:
             return {
@@ -44,8 +44,15 @@ def load_adjacency_matrix(path, format='hdf5', symmetrize=False):
                 idmap[id] = len(idlist)
                 idlist.append(id)
             return idmap[id]
-        df.loc[:, 'id1'] = df['id1'].apply(convert)
-        df.loc[:, 'id2'] = df['id2'].apply(convert)
+        if objects is not None:
+            objects = pandas.DataFrame.from_dict({'obj': objects, 'id': np.arange(len(objects))})
+            df = df.merge(objects, left_on='id1', right_on='obj').merge(objects, left_on='id2', right_on='obj')
+            df['id1'] = df['id_x']
+            df['id2'] = df['id_y']
+        else:
+            df.loc[:, 'id1'] = df['id1'].apply(convert)
+            df.loc[:, 'id2'] = df['id2'].apply(convert)
+            objects = np.array(idlist)
 
         groups = df.groupby('id1').apply(lambda x: x.sort_values(by='id2'))
         counts = df.groupby('id1').id2.size()
@@ -61,7 +68,7 @@ def load_adjacency_matrix(path, format='hdf5', symmetrize=False):
             'offsets' : offsets.astype('int'),
             'neighbors': neighbors.astype('int'),
             'weights': weights.astype('float'),
-            'objects': np.array(idlist)
+            'objects': objects
         }
     else:
         raise RuntimeError(f'Unsupported file format {format}')
