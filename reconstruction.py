@@ -39,7 +39,7 @@ if not os.path.exists(dset):
     raise ValueError("Can't find dset!")
 
 format = 'hdf5' if dset.endswith('.h5') else 'csv'
-dset = load_adjacency_matrix(dset, format)
+dset = load_adjacency_matrix(dset, format, objects=chkpnt['objects'])
 
 sample_size = args.sample or len(dset['ids'])
 sample = np.random.choice(len(dset['ids']), size=sample_size, replace=False)
@@ -49,8 +49,7 @@ adj = {}
 for i in sample:
     end = dset['offsets'][i + 1] if i + 1 < len(dset['offsets']) \
         else len(dset['neighbors'])
-    adj[i] = set(dset['neighbors'][dset['offsets'][i]:end])
-
+    adj[dset['ids'][i]] = set(dset['neighbors'][dset['offsets'][i]:end])
 manifold = MANIFOLDS[chkpnt['conf']['manifold']]()
 
 lt = chkpnt['embeddings']
