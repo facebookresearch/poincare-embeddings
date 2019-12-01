@@ -47,7 +47,7 @@ def train(
             if rank == 1:
                 log.info(f'Burn in negs={data.nnegatives()}, lr={lr}')
 
-        loader_iter = tqdm(loader) if progress and rank == 1 else loader
+        loader_iter = tqdm(loader, mininterval=3) if progress and rank == 1 else loader
         for i_batch, (inputs, targets) in enumerate(loader_iter):
             elapsed = timeit.default_timer() - t_start
             inputs = inputs.to(device)
