@@ -209,7 +209,7 @@ def eval_reconstruction_slow(adj, lt, distfn):
 def reconstruction_worker(adj, lt, distfn, objects, progress=False):
     ranksum = nranks = ap_scores = iters = 0
     labels = np.empty(lt.size(0))
-    for object in tqdm(objects) if progress else objects:
+    for object in tqdm(objects, mininterval=3) if progress else objects:
         labels.fill(0)
         neighbors = np.array(list(adj[object]))
         dists = distfn(lt[None, object], lt)
