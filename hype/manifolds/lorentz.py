@@ -7,24 +7,32 @@
 
 import torch as th
 from torch.autograd import Function
-from .common import acosh
+from hype.common import acosh
 from .manifold import Manifold
+import numpy as np
+from torch.nn import Embedding
 
 
 class LorentzManifold(Manifold):
     __slots__ = ["eps", "_eps", "norm_clip", "max_norm", "debug"]
 
-    @staticmethod
-    def dim(dim):
-        return dim + 1
-
     def __init__(self, eps=1e-12, _eps=1e-5, norm_clip=1, max_norm=1e6,
-            debug=False, **kwargs):
+            debug=False, K=None, **kwargs):
         self.eps = eps
         self._eps = _eps
         self.norm_clip = norm_clip
         self.max_norm = max_norm
         self.debug = debug
+        self.K = K
+        if K is not None:
+            self.inner_radius = 2 * self.K / (1 + np.sqrt(1 + 4 * self.K * self.K))
+
+    def allocate_lt(self, N, dim, sparse):
+        return Embedding(N, dim + 1, sparse=sparse)
+
+    def init_weights(self, w, irange=1e-5):
+        w.weight.data.uniform_(-irange, irange)
+        self.normalize(w.weight.data)
 
     @staticmethod
     def ldot(u, v, keepdim=False):
@@ -43,7 +51,7 @@ class LorentzManifold(Manifold):
         d.data.clamp_(min=1)
         return acosh(d, self._eps)
 
-    def pnorm(self, u):
+    def norm(self, u):
         return th.sqrt(th.sum(th.pow(self.to_poincare_ball(u), 2), dim=-1))
 
     def normalize(self, w):
@@ -52,6 +60,16 @@ class LorentzManifold(Manifold):
         narrowed = w.narrow(-1, 1, d)
         if self.max_norm:
             narrowed.view(-1, d).renorm_(p=2, dim=0, maxnorm=self.max_norm)
+
+        if self.K is not None:
+            # Push embeddings outside of `inner_radius`
+            w0 = w.narrow(-1, 0, 1).squeeze()
+            wnrm = th.sqrt(th.sum(th.pow(narrowed, 2), dim=-1)) / (1 + w0)
+            scal = th.ones_like(wnrm)
+            ix = wnrm < (self.inner_radius + self._eps)
+            scal[ix] = (self.inner_radius + self._eps) / wnrm[ix]
+            narrowed.mul_(scal.unsqueeze(-1))
+
         tmp = 1 + th.sum(th.pow(narrowed, 2), dim=-1, keepdim=True)
         tmp.sqrt_()
         w.narrow(-1, 0, 1).copy_(tmp)
@@ -65,10 +83,6 @@ class LorentzManifold(Manifold):
         tmp.sqrt_().clamp_(min=self._eps)
         v_all.narrow(1, 0, 1).copy_(xv / tmp)
         return v_all
-
-    def init_weights(self, w, irange=1e-5):
-        w.data.uniform_(-irange, irange)
-        w.data.copy_(self.normalize(w.data))
 
     def rgrad(self, p, d_p):
         """Riemannian gradient for hyperboloid"""
@@ -149,6 +163,36 @@ class LorentzManifold(Manifold):
             return vnew
         else:
             out.index_copy_(0, ix, vnew)
+
+    def half_aperture(self, u):
+        eps = self.eps
+        d = u.size(-1) - 1
+        sqnu = th.sum(u.narrow(-1, 1, d) ** 2, dim=-1) / (1 + u.narrow(-1, 0, 1)
+            .squeeze(-1)) ** 2
+        sqnu.clamp_(min=0, max=1 - eps)
+        return th.asin((self.inner_radius * (1 - sqnu) / th.sqrt(sqnu))
+            .clamp(min=-1 + eps, max=1 - eps))
+
+    def angle_at_u(self, u, v):
+        uvldot = LorentzDot.apply(u, v)
+        u0 = u.narrow(-1, 0, 1).squeeze(-1)
+        num = th.add(v.narrow(-1, 0, 1).squeeze(-1), th.mul(u0, uvldot))
+        tmp = th.pow(uvldot, 2) - 1.
+        den = th.sqrt(th.pow(u0, 2) - 1.) * th.sqrt(tmp.clamp_(min=self.eps))
+        frac = th.div(num, den)
+        if self.debug and (frac != frac).any():
+            import ipdb; ipdb.set_trace()
+        frac.data.clamp_(min=-1 + self.eps, max=1 - self.eps)
+        ksi = frac.acos()
+        return ksi
+
+    def norm(self, u):
+        if isinstance(u, Embedding):
+            u = u.weight
+        d = u.size(-1) - 1
+        sqnu = th.sum(u.narrow(-1, 1, d) ** 2, dim=-1)
+        sqnu = sqnu / (1 + u.narrow(-1, 0, 1).squeeze(-1)) ** 2
+        return sqnu.sqrt()
 
 
 class LorentzDot(Function):

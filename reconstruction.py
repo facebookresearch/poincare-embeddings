@@ -10,18 +10,8 @@ import argparse
 import numpy as np
 import torch
 import os
-from hype.lorentz import LorentzManifold
-from hype.euclidean import EuclideanManifold, TranseManifold
-from hype.poincare import PoincareManifold
 import timeit
-
-
-MANIFOLDS = {
-    'lorentz': LorentzManifold,
-    'euclidean': EuclideanManifold,
-    'transe': TranseManifold,
-    'poincare': PoincareManifold
-}
+from hype import MANIFOLDS, MODELS
 
 np.random.seed(42)
 
@@ -52,13 +42,24 @@ for i in sample:
     adj[dset['ids'][i]] = set(dset['neighbors'][dset['offsets'][i]:end])
 manifold = MANIFOLDS[chkpnt['conf']['manifold']]()
 
+manifold = MANIFOLDS[chkpnt['conf']['manifold']]()
+model = MODELS[chkpnt['conf']['model']](
+    manifold,
+    dim=chkpnt['conf']['dim'],
+    size=chkpnt['embeddings'].size(0),
+    sparse=chkpnt['conf']['sparse']
+)
+model.load_state_dict(chkpnt['model'])
+
 lt = chkpnt['embeddings']
 if not isinstance(lt, torch.Tensor):
     lt = torch.from_numpy(lt).cuda()
 
+
+
 tstart = timeit.default_timer()
-meanrank, maprank = eval_reconstruction(adj, lt, manifold.distance,
-    workers=args.workers, progress=not args.quiet)
+meanrank, maprank = eval_reconstruction(adj, model, workers=args.workers,
+    progress=not args.quiet)
 etime = timeit.default_timer() - tstart
 
 print(f'Mean rank: {meanrank}, mAP rank: {maprank}, time: {etime}')

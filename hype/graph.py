@@ -10,7 +10,6 @@ import pandas
 import numpy as np
 from numpy.random import choice
 import torch as th
-from torch import nn
 from torch.utils.data import Dataset as DS
 from sklearn.metrics import average_precision_score
 from multiprocessing.pool import ThreadPool
@@ -84,43 +83,6 @@ def load_edge_list(path, symmetrize=False):
     idx = idx.reshape(-1, 2).astype('int')
     weights = df.weight.values.astype('float')
     return idx, objects.tolist(), weights
-
-
-class Embedding(nn.Module):
-    def __init__(self, size, dim, manifold, sparse=True):
-        super(Embedding, self).__init__()
-        self.dim = dim
-        self.nobjects = size
-        self.manifold = manifold
-        self.lt = nn.Embedding(size, dim, sparse=sparse)
-        self.dist = manifold.distance
-        self.pre_hook = None
-        self.post_hook = None
-        self.init_weights(manifold)
-
-    def init_weights(self, manifold, scale=1e-4):
-        manifold.init_weights(self.lt.weight, scale)
-
-    def forward(self, inputs):
-        e = self.lt(inputs)
-        with th.no_grad():
-            e = self.manifold.normalize(e)
-        if self.pre_hook is not None:
-            e = self.pre_hook(e)
-        fval = self._forward(e)
-        return fval
-
-    def embedding(self):
-        return list(self.lt.parameters())[0].data.cpu().numpy()
-
-    def optim_params(self, manifold):
-        return [{
-            'params': self.lt.parameters(),
-            'rgrad': manifold.rgrad,
-            'expm': manifold.expm,
-            'logm': manifold.logm,
-            'ptransp': manifold.ptransp,
-        }, ]
 
 
 # This class is now deprecated in favor of BatchedDataset (graph_dataset.pyx)
@@ -206,13 +168,13 @@ def eval_reconstruction_slow(adj, lt, distfn):
     return np.mean(ranks), np.mean(ap_scores)
 
 
-def reconstruction_worker(adj, lt, distfn, objects, progress=False):
+def reconstruction_worker(adj, model, objects, progress=False):
     ranksum = nranks = ap_scores = iters = 0
-    labels = np.empty(lt.size(0))
+    labels = np.empty(model.lt.weight.size(0))
     for object in tqdm(objects) if progress else objects:
         labels.fill(0)
         neighbors = np.array(list(adj[object]))
-        dists = distfn(lt[None, object], lt)
+        dists = model.energy(model.lt.weight[None, object], model.lt.weight)
         dists[object] = 1e12
         sorted_dists, sorted_idx = dists.sort()
         ranks, = np.where(np.in1d(sorted_idx.detach().cpu().numpy(), neighbors))
@@ -239,7 +201,7 @@ def reconstruction_worker(adj, lt, distfn, objects, progress=False):
     return float(ranksum), nranks, ap_scores, iters
 
 
-def eval_reconstruction(adj, lt, distfn, workers=1, progress=False):
+def eval_reconstruction(adj, model, workers=1, progress=False):
     '''
     Reconstruction evaluation.  For each object, rank its neighbors by distance
 
@@ -253,9 +215,9 @@ def eval_reconstruction(adj, lt, distfn, workers=1, progress=False):
     objects = np.array(list(adj.keys()))
     if workers > 1:
         with ThreadPool(workers) as pool:
-            f = partial(reconstruction_worker, adj, lt, distfn)
+            f = partial(reconstruction_worker, adj, model)
             results = pool.map(f, np.array_split(objects, workers))
             results = np.array(results).sum(axis=0).astype(float)
     else:
-        results = reconstruction_worker(adj, lt, distfn, objects, progress)
+        results = reconstruction_worker(adj, model, objects, progress)
     return float(results[0]) / results[1], float(results[2]) / results[3]

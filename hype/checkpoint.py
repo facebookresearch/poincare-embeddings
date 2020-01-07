@@ -6,9 +6,26 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-from os.path import join as pjoin
 import time
 import torch
+import warnings
+
+
+def upgrade_state_dict(state):
+    '''
+    Used to upgrade old checkpoints to deal with breaking changes
+    '''
+    conf = state['conf']
+
+    # Previously we only had `-manifold`.  if this is an old checkpoint, then
+    # update the `conf` to use the same manifold and "distance" model...
+    if 'model' not in conf:
+        warnings.warn(
+            'Missing `model` field in checkpoint config.'
+            '  Assuming `distance`.'
+        )
+        conf['model'] = 'distance'
+    return state
 
 
 class LocalCheckpoint(object):

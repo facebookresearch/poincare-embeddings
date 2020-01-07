@@ -8,17 +8,35 @@
 import torch as th
 from torch.autograd import Function
 from .euclidean import EuclideanManifold
+import numpy as np
 
 
 class PoincareManifold(EuclideanManifold):
-    def __init__(self, eps=1e-5, **kwargs):
-        super(PoincareManifold, self).__init__(**kwargs)
+    def __init__(self, eps=1e-5, K=None, **kwargs):
         self.eps = eps
-        self.boundary = 1 - eps
-        self.max_norm = self.boundary
+        super(PoincareManifold, self).__init__(max_norm=1 - eps)
+        self.K = K
+        if K is not None:
+            self.inner_radius = 2 * K / (1 + np.sqrt(1 + 4 * K * self.K))
 
     def distance(self, u, v):
         return Distance.apply(u, v, self.eps)
+
+    def half_aperture(self, u):
+        eps = self.eps
+        sqnu = u.pow(2).sum(dim=-1)
+        sqnu.clamp_(min=0, max=1 - eps)
+        return th.asin((self.inner_radius * (1 - sqnu) / th.sqrt(sqnu))
+            .clamp(min=-1 + eps, max=1 - eps))
+
+    def angle_at_u(self, u, v):
+        norm_u = u.norm(2, dim=-1)
+        norm_v = v.norm(2, dim=-1)
+        dot_prod = (u * v).sum(dim=-1)
+        edist = (u - v).norm(2, dim=-1)  # euclidean distance
+        num = (dot_prod * (1 + norm_v ** 2) - norm_v ** 2 * (1 + norm_u ** 2))
+        denom = (norm_v * edist * (1 + norm_v**2 * norm_u**2 - 2 * dot_prod).sqrt())
+        return (num / denom).clamp_(min=-1 + self.eps, max=1 - self.eps).acos()
 
     def rgrad(self, p, d_p):
         if d_p.is_sparse:

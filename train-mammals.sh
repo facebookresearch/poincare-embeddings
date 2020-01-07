@@ -12,6 +12,7 @@ python3 embed.py \
        -negs 50 \
        -burnin 20 \
        -ndproc 4 \
+       -model distance \
        -manifold poincare \
        -dset wordnet/mammal_closure.csv \
        -checkpoint mammals.pth \

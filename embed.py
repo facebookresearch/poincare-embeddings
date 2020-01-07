@@ -9,34 +9,58 @@ import torch as th
 import numpy as np
 import logging
 import argparse
-from hype.sn import Embedding, initialize
 from hype.adjacency_matrix_dataset import AdjacencyDataset
 from hype import train
 from hype.graph import load_adjacency_matrix, load_edge_list, eval_reconstruction
 from hype.checkpoint import LocalCheckpoint
 from hype.rsgd import RiemannianSGD
-from hype.lorentz import LorentzManifold
-from hype.euclidean import EuclideanManifold
-from hype.poincare import PoincareManifold
 import sys
 import json
 import torch.multiprocessing as mp
 import shutil
-
+from hype.graph_dataset import BatchedDataset
+from hype import MANIFOLDS, MODELS, build_model
+from hype.hypernymy_eval import main as hype_eval
 
 th.manual_seed(42)
 np.random.seed(42)
 
 
-MANIFOLDS = {
-    'lorentz': LorentzManifold,
-    'euclidean': EuclideanManifold,
-    'poincare': PoincareManifold
-}
+def reconstruction_eval(adj, opt, epoch, elapsed, loss, pth, best):
+    chkpnt = th.load(pth, map_location='cpu')
+    model = build_model(opt, chkpnt['embeddings'].size(0))
+    model.load_state_dict(chkpnt['model'])
+
+    meanrank, maprank = eval_reconstruction(adj, model)
+    sqnorms = model.manifold.norm(model.lt)
+    return {
+        'epoch': epoch,
+        'elapsed': elapsed,
+        'loss': loss,
+        'sqnorm_min': sqnorms.min().item(),
+        'sqnorm_avg': sqnorms.mean().item(),
+        'sqnorm_max': sqnorms.max().item(),
+        'mean_rank': meanrank,
+        'map_rank': maprank,
+        'best': bool(best is None or loss < best['loss']),
+    }
+
+
+def hypernymy_eval(epoch, elapsed, loss, pth, best):
+    _, summary = hype_eval(pth, cpu=True)
+    return {
+        'epoch': epoch,
+        'elapsed': elapsed,
+        'loss': loss,
+        'best': bool(
+            best is None or summary['eval_hypernymy_avg'] > best['eval_hypernymy_avg'])
+        ,
+        **summary
+    }
 
 
 def async_eval(adj, q, logQ, opt):
-    manifold = MANIFOLDS[opt.manifold]()
+    best = None
     while True:
         temp = q.get()
         if temp is None:
@@ -46,21 +70,13 @@ def async_eval(adj, q, logQ, opt):
             continue
 
         epoch, elapsed, loss, pth = temp
-        chkpnt = th.load(pth, map_location='cpu')
-        lt = chkpnt['embeddings']
-
-        meanrank, maprank = eval_reconstruction(adj, lt, manifold.distance)
-        sqnorms = manifold.pnorm(lt)
-        lmsg = {
-            'epoch': epoch,
-            'elapsed': elapsed,
-            'loss': loss,
-            'sqnorm_min': sqnorms.min().item(),
-            'sqnorm_avg': sqnorms.mean().item(),
-            'sqnorm_max': sqnorms.max().item(),
-            'mean_rank': meanrank,
-            'map_rank': maprank
-        }
+        if opt.eval == 'reconstruction':
+            lmsg = reconstruction_eval(adj, opt, epoch, elapsed, loss, pth, best)
+        elif opt.eval == 'hypernymy':
+            lmsg = hypernymy_eval(epoch, elapsed, loss, pth, best)
+        else:
+            raise ValueError(f'Unrecognized evaluation: {opt.eval}')
+        best = lmsg if lmsg['best'] else best
         logQ.put((lmsg, pth))
 
 
@@ -84,7 +100,9 @@ def main():
     parser.add_argument('-dim', type=int, default=20,
                         help='Embedding dimension')
     parser.add_argument('-manifold', type=str, default='lorentz',
-                        choices=MANIFOLDS.keys(), help='Embedding manifold')
+                        choices=MANIFOLDS.keys())
+    parser.add_argument('-model', type=str, default='distance',
+                        choices=MODELS.keys(), help='Energy function model')
     parser.add_argument('-lr', type=float, default=1000,
                         help='Learning rate')
     parser.add_argument('-epochs', type=int, default=100,
@@ -119,6 +137,9 @@ def main():
     parser.add_argument('-lr_type', choices=['scale', 'constant'], default='constant')
     parser.add_argument('-train_threads', type=int, default=1,
                         help='Number of threads to use in training')
+    parser.add_argument('-margin', type=float, default=0.1, help='Hinge margin')
+    parser.add_argument('-eval', choices=['reconstruction', 'hypernymy'],
+                        default='reconstruction', help='Which type of eval to perform')
     opt = parser.parse_args()
 
     # setup debugging and logigng
@@ -130,30 +151,25 @@ def main():
         opt.gpu = -1
         log.warning(f'Specified hogwild training with GPU, defaulting to CPU...')
 
-
     # set default tensor type
     th.set_default_tensor_type('torch.DoubleTensor')
     # set device
     device = th.device(f'cuda:{opt.gpu}' if opt.gpu >= 0 else 'cpu')
 
-    # select manifold to optimize on
-    manifold = MANIFOLDS[opt.manifold](debug=opt.debug, max_norm=opt.maxnorm)
-    opt.dim = manifold.dim(opt.dim)
-
     if 'csv' in opt.dset:
         log.info('Using edge list dataloader')
         idx, objects, weights = load_edge_list(opt.dset, opt.sym)
-        model, data, model_name, conf = initialize(
-            manifold, opt, idx, objects, weights, sparse=opt.sparse
-        )
+        data = BatchedDataset(idx, objects, weights, opt.negs, opt.batchsize,
+            opt.ndproc, opt.burnin > 0, opt.dampening)
     else:
         log.info('Using adjacency matrix dataloader')
         dset = load_adjacency_matrix(opt.dset, 'hdf5')
         log.info('Setting up dataset...')
         data = AdjacencyDataset(dset, opt.negs, opt.batchsize, opt.ndproc,
             opt.burnin > 0, sample_dampening=opt.dampening)
-        model = Embedding(data.N, opt.dim, manifold, sparse=opt.sparse)
         objects = dset['objects']
+
+    model = build_model(opt, len(objects))
 
     # set burnin parameters
     data.neg_multiplier = opt.neg_multiplier
@@ -166,7 +182,7 @@ def main():
         opt.lr = opt.lr * opt.batchsize
 
     # setup optimizer
-    optimizer = RiemannianSGD(model.optim_params(manifold), lr=opt.lr)
+    optimizer = RiemannianSGD(model.optim_params(), lr=opt.lr)
 
     # setup checkpoint
     checkpoint = LocalCheckpoint(
@@ -200,14 +216,14 @@ def main():
         Control thread to evaluate embedding
         """
         lt = model.w_avg if hasattr(model, 'w_avg') else model.lt.weight.data
-        manifold.normalize(lt)
+        model.manifold.normalize(lt)
 
         checkpoint.path = f'{opt.checkpoint}.{epoch}'
         checkpoint.save({
             'model': model.state_dict(),
             'embeddings': lt,
             'epoch': epoch,
-            'manifold': opt.manifold,
+            'model_type': opt.model,
         })
 
         controlQ.put((epoch, elapsed, loss, checkpoint.path))
@@ -215,6 +231,8 @@ def main():
         while not logQ.empty():
             lmsg, pth = logQ.get()
             shutil.move(pth, opt.checkpoint)
+            if lmsg['best']:
+                shutil.copy(opt.checkpoint, opt.checkpoint + '.best')
             log.info(f'json_stats: {json.dumps(lmsg)}')
 
     control.checkpoint = True
