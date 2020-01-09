@@ -11,21 +11,24 @@ import numpy
 from distutils.extension import Extension
 from subprocess import check_output
 from distutils import sysconfig
-import re
+import sys
 
 extra_compile_args = ['-std=c++11']
+extra_link_args = []
 
 # Super hacky way of determining if clang or gcc is being used
 CC = sysconfig.get_config_vars().get('CC', 'gcc').split(' ')[0]
 out = check_output([CC, '--version'])
-if re.search('apple *llvm', str(out.lower())):
-    extra_compile_args.append('-stdlib=libc++')
+if sys.platform == 'darwin':
+    extra_compile_args = ["-stdlib=libc++"]
+    extra_link_args=['-stdlib=libc++']
 
 extensions = [
     Extension(
         "hype.graph_dataset",
         ["hype/graph_dataset.pyx"],
         include_dirs=[numpy.get_include()],
+        extra_link_args=extra_link_args,
         extra_compile_args=extra_compile_args,
         language='c++',
     ),
@@ -33,6 +36,7 @@ extensions = [
         "hype.adjacency_matrix_dataset",
         ["hype/adjacency_matrix_dataset.pyx"],
         include_dirs=[numpy.get_include()],
+        extra_link_args=extra_link_args,
         extra_compile_args=extra_compile_args,
         language='c++',
     ),
