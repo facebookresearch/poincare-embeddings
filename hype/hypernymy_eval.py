@@ -13,7 +13,7 @@ def download_data():
     if not os.path.exists(os.path.join(data_dir, 'bless.tsv')):
         print('Downloading hypernymysuite eval data...')
         url = 'https://raw.githubusercontent.com/facebookresearch/hypernymysuite/master/download_data.sh'  # noqa B950
-        env = {'HYPERNYMY_DATA_OUTPUT': data_dir}
+        env = {**os.environ, 'HYPERNYMY_DATA_OUTPUT': data_dir}
         res = check_call(f'wget -q -O - {url} | bash', shell=True, env=env)
         if res != 0:
             raise ValueError('')
