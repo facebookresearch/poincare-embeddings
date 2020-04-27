@@ -5,7 +5,7 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-python3 embed.py \
+python embed.py \
        -dim 5 \
        -lr 0.3 \
        -epochs 300 \
