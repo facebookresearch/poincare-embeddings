@@ -56,7 +56,8 @@ def train(
             # count occurrences of objects in batch
             if hasattr(opt, 'asgd') and opt.asgd:
                 counts = th.bincount(inputs.view(-1), minlength=model.nobjects)
-                counts.clamp_(min=1).div_(inputs.size(0))
+                counts = counts.clamp_(min=1)
+                getattr(counts, 'floor_divide_', counts.div_)(inputs.size(0))
                 counts = counts.double().unsqueeze(-1)
 
             optimizer.zero_grad()
