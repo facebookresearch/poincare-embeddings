@@ -9,6 +9,7 @@ import os
 import time
 import torch
 import warnings
+from fvcore.common.file_io import PathManager
 
 
 def upgrade_state_dict(state):
@@ -37,13 +38,15 @@ class LocalCheckpoint(object):
     def initialize(self, params):
         if not self.start_fresh and os.path.isfile(self.path):
             print(f'Loading checkpoint from {self.path}')
-            return torch.load(self.path)
+            with PathManager.open(self.path, 'rb') as fin:
+                return torch.load(fin)
         else:
             return params
 
     def save(self, params, tries=10):
         try:
-            torch.save({**self.include_in_all, **params}, self.path)
+            with PathManager.open(self.path, 'wb') as fout:
+                torch.save({**self.include_in_all, **params}, fout)
         except Exception as err:
             if tries > 0:
                 print(f'Exception while saving ({err})\nRetrying ({tries})')

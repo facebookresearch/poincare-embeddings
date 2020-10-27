@@ -16,18 +16,20 @@ from multiprocessing.pool import ThreadPool
 from functools import partial
 import h5py
 from tqdm import tqdm
+from fvcore.common.file_io import PathManager
 
 
 def load_adjacency_matrix(path, format='hdf5', symmetrize=False, objects=None):
     if format == 'hdf5':
-        with h5py.File(path, 'r') as hf:
-            return {
-                'ids': hf['ids'].value.astype('int'),
-                'neighbors': hf['neighbors'].value.astype('int'),
-                'offsets': hf['offsets'].value.astype('int'),
-                'weights': hf['weights'].value.astype('float'),
-                'objects': hf['objects'].value
-            }
+        with PathManager.open(path, 'rb') as fin:
+            with h5py.File(fin, 'r') as hf:
+                return {
+                    'ids': hf['ids'].value.astype('int'),
+                    'neighbors': hf['neighbors'].value.astype('int'),
+                    'offsets': hf['offsets'].value.astype('int'),
+                    'weights': hf['weights'].value.astype('float'),
+                    'objects': hf['objects'].value
+                }
     elif format == 'csv':
         df = pandas.read_csv(path, usecols=['id1', 'id2', 'weight'], engine='c')
 
@@ -173,7 +175,7 @@ def reconstruction_worker(adj, model, objects, progress=False):
     labels = np.empty(model.lt.weight.size(0))
     for object in tqdm(objects) if progress else objects:
         labels.fill(0)
-        neighbors = np.array(list(adj[object]))
+        neighbors = np.array(list(adj[object]), dtype=np.int32)
         dists = model.energy(model.lt.weight[None, object], model.lt.weight)
         dists[object] = 1e12
         sorted_dists, sorted_idx = dists.sort()

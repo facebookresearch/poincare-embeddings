@@ -1,3 +1,5 @@
+-e git+https://github.com/facebookresearch/fvcore.git#egg=fvcore
+-e git+https://github.com/facebookresearch/hypernymysuite.git#egg=hypernymysuite
 nltk
 scikit-learn
 pandas
