@@ -16,12 +16,12 @@ from multiprocessing.pool import ThreadPool
 from functools import partial
 import h5py
 from tqdm import tqdm
-from fvcore.common.file_io import PathManager
+from hype.path_manager import path_manager
 
 
 def load_adjacency_matrix(path, format='hdf5', symmetrize=False, objects=None):
     if format == 'hdf5':
-        with PathManager.open(path, 'rb') as fin:
+        with path_manager.open(path, 'rb') as fin:
             with h5py.File(fin, 'r') as hf:
                 return {
                     'ids': hf['ids'].value.astype('int'),

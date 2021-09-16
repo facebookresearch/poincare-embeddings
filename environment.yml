@@ -14,5 +14,5 @@ dependencies:
 - cython
 - tqdm
 - pip:
-  - git+https://github.com/facebookresearch/fvcore.git
+  - iopath
   - git+https://github.com/facebookresearch/hypernymysuite.git
