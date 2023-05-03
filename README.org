@@ -10,7 +10,7 @@ Simply clone this repository via
   git clone https://github.com/facebookresearch/poincare-embeddings.git
   cd poincare-embeddings
   conda env create -f environment.yml
-  source activate poincare
+  conda activate poincare
   python setup.py build_ext --inplace
 #+END_SRC
 
