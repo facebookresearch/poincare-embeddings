@@ -107,7 +107,7 @@ class Dataset(DS):
         self.objects = objects
 
         self._weights = ddict(lambda: ddict(int))
-        self._counts = np.ones(len(objects), dtype=np.float)
+        self._counts = np.ones(len(objects), dtype=float)
         self.max_tries = self.nnegs * self._ntries
         for i in range(idx.shape[0]):
             t, h = self.idx[i]
