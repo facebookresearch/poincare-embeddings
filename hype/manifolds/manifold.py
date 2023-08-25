@@ -9,7 +9,7 @@ from abc import abstractmethod
 from torch.nn import Embedding
 
 
-class Manifold(object):
+class Manifold:
     def allocate_lt(self, N, dim, sparse):
         return Embedding(N, dim, sparse=sparse)
 

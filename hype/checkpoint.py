@@ -29,7 +29,7 @@ def upgrade_state_dict(state):
     return state
 
 
-class LocalCheckpoint(object):
+class LocalCheckpoint:
     def __init__(self, path, include_in_all=None, start_fresh=False):
         self.path = path
         self.start_fresh = start_fresh
