@@ -8,9 +8,8 @@
 import torch as th
 from numpy.random import randint
 from . import graph
-from .graph_dataset import BatchedDataset
 
-model_name = '%s_dim%d'
+model_name = "%s_dim%d"
 
 
 # This class is now deprecated in favor of BatchedDataset (graph_dataset.pyx)
@@ -29,8 +28,9 @@ class Dataset(graph.Dataset):
                     n = int(self.unigram_table[n])
                 else:
                     n = randint(0, len(self.objects))
-                if (n not in self._weights[t]) or \
-                        (self._weights[t][n] < self._weights[t][h]):
+                if (n not in self._weights[t]) or (
+                    self._weights[t][n] < self._weights[t][h]
+                ):
                     negs.add(n)
                 ntries += 1
         if len(negs) == 0:

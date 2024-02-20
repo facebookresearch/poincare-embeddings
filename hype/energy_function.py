@@ -7,7 +7,6 @@
 
 import torch
 import torch.nn.functional as F
-import torch as th
 
 
 class EnergyFunction(torch.nn.Module):
@@ -27,13 +26,15 @@ class EnergyFunction(torch.nn.Module):
         return self.energy(s, o).squeeze(-1)
 
     def optim_params(self):
-        return [{
-            'params': self.lt.parameters(),
-            'rgrad': self.manifold.rgrad,
-            'expm': self.manifold.expm,
-            'logm': self.manifold.logm,
-            'ptransp': self.manifold.ptransp,
-        }]
+        return [
+            {
+                "params": self.lt.parameters(),
+                "rgrad": self.manifold.rgrad,
+                "expm": self.manifold.expm,
+                "logm": self.manifold.logm,
+                "ptransp": self.manifold.ptransp,
+            }
+        ]
 
     def loss_function(self, inp, target, **kwargs):
         raise NotImplementedError
@@ -50,10 +51,10 @@ class DistanceEnergyFunction(EnergyFunction):
 class EntailmentConeEnergyFunction(EnergyFunction):
     def __init__(self, *args, margin=0.1, **kwargs):
         super().__init__(*args, **kwargs)
-        assert self.manifold.K is not None, (
-            "K cannot be none for EntailmentConeEnergyFunction"
-        )
-        assert hasattr(self.manifold, 'angle_at_u'), 'Missing `angle_at_u` method'
+        assert (
+            self.manifold.K is not None
+        ), "K cannot be none for EntailmentConeEnergyFunction"
+        assert hasattr(self.manifold, "angle_at_u"), "Missing `angle_at_u` method"
         self.margin = margin
 
     def energy(self, s, o):
