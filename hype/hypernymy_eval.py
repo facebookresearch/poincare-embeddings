@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 from . import build_model
-from hypernymysuite.base import HypernymySuiteModel
-from hypernymysuite.evaluation import all_evaluations
+from hypernymysuite.base import HypernymySuiteModel # @manual
+from hypernymysuite.evaluation import all_evaluations # @manual
 import torch as th
 import os
 from subprocess import check_call
