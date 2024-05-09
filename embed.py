@@ -18,7 +18,7 @@ import sys
 import json
 import torch.multiprocessing as mp
 import shutil
-from hype.graph_dataset import BatchedDataset
+from hype.graph_dataset import BatchedDataset # @manual=fbcode//deeplearning/projects/hyperbolic-embeddings:graph_dataset/hype/graph_dataset
 from hype import MANIFOLDS, MODELS, build_model
 from hype.hypernymy_eval import main as hype_eval
 
