@@ -26,7 +26,7 @@ class EuclideanManifold(Manifold):
         return u
 
     def distance(self, u, v):
-        return (u - v).pow(2).sum(dim=-1)
+        return (u - v).pow(2).sum(dim=-1).sqrt()
 
     def rgrad(self, p, d_p):
         return d_p
